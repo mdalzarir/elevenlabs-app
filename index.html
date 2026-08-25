@@ -164,8 +164,11 @@
   </div>
 
   <script>
-    // Proxy Prefix URL
-    const PROXY = 'https://corsproxy.io/?';
+    // Proxy Prefix URL (fixed: corsproxy.io now requires ?url= with the target URL-encoded)
+    const PROXY = 'https://corsproxy.io/?url=';
+    function proxied(url) {
+      return PROXY + encodeURIComponent(url);
+    }
 
     // Character Counter
     const textInput = document.getElementById('textInput');
@@ -248,9 +251,10 @@
       if (!apiKey) return;
 
       try {
-        const response = await fetch(PROXY + 'https://api.elevenlabs.io/v1/voices', {
+        const response = await fetch(proxied('https://api.elevenlabs.io/v1/voices'), {
           headers: { 'xi-api-key': apiKey }
         });
+        if (!response.ok) throw new Error('Voice fetch failed: ' + response.status);
         const data = await response.json();
         const select = document.getElementById('voiceSelect');
         select.innerHTML = '';
@@ -262,7 +266,7 @@
           select.appendChild(option);
         });
       } catch (err) {
-        alert("Failed to fetch voices. Check API Key.");
+        alert("Failed to fetch voices. Check API Key.\n" + err.message);
       }
     }
 
@@ -295,7 +299,7 @@
       }
 
       try {
-        const response = await fetch(PROXY + `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        const response = await fetch(proxied(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -342,9 +346,10 @@
       listContainer.innerText = "Loading history...";
 
       try {
-        const response = await fetch(PROXY + 'https://api.elevenlabs.io/v1/history', {
+        const response = await fetch(proxied('https://api.elevenlabs.io/v1/history'), {
           headers: { 'xi-api-key': apiKey }
         });
+        if (!response.ok) throw new Error('History fetch failed: ' + response.status);
         const data = await response.json();
         listContainer.innerHTML = '';
 
@@ -359,7 +364,7 @@
           card.innerHTML = `
             <div class="history-text"><strong>${item.voice_name}:</strong> ${item.text}</div>
             <div class="history-controls">
-              <audio controls src="${PROXY}https://api.elevenlabs.io/v1/history/${item.history_item_id}/audio" style="height:30px; width: 200px;"></audio>
+              <audio controls src="${proxied('https://api.elevenlabs.io/v1/history/' + item.history_item_id + '/audio')}" style="height:30px; width: 200px;"></audio>
               <button onclick="downloadHistoryAudio('${item.history_item_id}')" class="dl-btn">Download</button>
             </div>
           `;
@@ -373,7 +378,7 @@
     // Download from History with Proxy
     async function downloadHistoryAudio(itemId) {
       const apiKey = getApiKey();
-      const response = await fetch(PROXY + `https://api.elevenlabs.io/v1/history/${itemId}/audio`, {
+      const response = await fetch(proxied(`https://api.elevenlabs.io/v1/history/${itemId}/audio`), {
         headers: { 'xi-api-key': apiKey }
       });
       const blob = await response.blob();
